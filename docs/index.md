@@ -1,12 +1,10 @@
-Overview
-========
+# Overview
 
 The Android Things First Device project is the prerequisite "hello world" project for noobs getting started with Android Things. The [Android Things documentation](https://developer.android.com/things) is really very good but I did run into a few things (no pun intended) that weren't exactly clear to me. My confusion could just be attributed to my naivete with electronics hardware. I'm not a total hardware neophyte but this is most certainly __not__ my area of expertise.
 
 My intent with this project is to document some of the issues I ran into while creating this project, the answers and solutions I discovered and some of the customizations I tried.
 
-Getting Started
-===============
+# Getting Started
 
 The [Android Things documentation](https://developer.android.com/things) is, in my opinion, very good. Getting started with Android Things development basically begins with selecting a hardware platform and that is also where the Android Things documentation begins.
 
@@ -16,10 +14,9 @@ All of the hardware opinions should be relatively equivalent for noobs just gett
 
 One down-side to selecting the Raspberry Pi 3 is the inability of connecting to the Raspberry Pi via a USB connection. This isn't a problem as the Raspberry Pi has an Ethernet port and Wi-Fi but I like the idea of connecting [Android Debug Bridge](https://developer.android.com/studio/command-line/adb.html) directly to an Android device for development. This could be a non-issue and just a limitation of my knowledge about developing on the Raspberry Pi 3.
 
-Hardware Set-up
----------------
+# Hardware Set-up
 
-#### Raspberry Pi 3 Set-up
+## Raspberry Pi 3 Set-up
 
 Setting up the Raspberry Pi 3 with the Android Things OS was straightforward and easy. Just follow the [step-by-step instructions](https://developer.android.com/things/hardware/raspberrypi.html) in the Android Things documentation for Raspberry Pi 3.
 
@@ -39,10 +36,74 @@ Connecting the Raspberry Pi 3 to your network by cable or over Wi-Fi is optional
 
 You can also skip the "Serial debug console" and "Configuring the UART mode" sections for this project as they are not needed.
 
-#### Connecting the Hardware
+## The Peripheral Hardware
 
-For someone such as myself that's primarily a software developer this next step was my first challenge. I've customized my computers over the years, my first computer was an Apple ][+ (which I still have for sentimental reasons), I built a Windows PC from components, I've configured and set-up NAS servers, network routers and extenders and done a number of varied tasks over the years to get the most out of a variety of electronic devices but building circuits is something I haven't done for years.
+The next step for this project is building the peripheral hardware to extend the Raspberry Pi 3 into a target device. The software in the Android Things First Device app will interact with this device. While the peripheral hardware is a __very__ simple circuit it was obvious to me I was going to need to do some research to come up to speed on how to build this circuit.
 
-The next step for this project is building the circuitry the Android Things app will interact with. While this is a __very__ simple circuit it was obvious I was going to need to do some research to come up to speed on how to build this circuit.
+For someone such as myself that's primarily a software developer this next step was a bit of a small challenge. Qver the years, I've customized computers, my first computer was an Apple ][+ (which I still have for sentimental reasons) which I customized with several hardware add-ons, I built a Windows PC from components, I've configured and set-up NAS servers, network routers and extenders and done a number of varied tasks over the years to get the most out of a variety of electronic devices but building circuits is something I haven't done since college.
 
-First, I needed to get the necessary electronic components. There are some great electronic parts supplier for DIYers and hobbiests. The two suppliers that I like are [adafruit](https://adafruit.com) and [sparkfun](https://sparkfun.com). I'm sure there are many more great suppliers but these are the two I found. Both have a ton of great information and tutorials. I especially like the tutorial videos on sparkfun.
+First, I needed to get the necessary electronic components to build the peripheral hardware. There are some great electronic parts suppliers for DIYers and hobbiests. Two suppliers I like are [adafruit](https://adafruit.com) and [sparkfun](https://sparkfun.com). I'm sure there are many more great suppliers but these are the two I found. Both have a ton of great information and tutorials. I especially like the tutorial videos on sparkfun. I highly recommend these videos for anyone needing help with electronics basics. The videos can be a little simplistic but they are short and effective.
+
+I ordered the [Project Kit for Android Things](https://adafruit.com/product/3227) from [adafruit](https://adafruit.com) to use for my beginning Android Things projects. While the kit had the components needed for this first project, I found that connecting the GPIO pins on the Raspberry Pi 3 to the breadboard was a bit cumbersome. Doing a little more research I found the solution many hobbiests use is a 40-pin Cobbler. I looked at several cobblers and liked the one included in the [CanaKit Raspberry Pi GPIO Breakout Board / Cobbler Bundle (40-Pin T-Shaped - Assembled)](https://www.amazon.com/gp/product/B011D06Y4G/ref=oh_aui_detailpage_o03_s00?ie=UTF8&psc=1) from Amazon.com. The kit from adafruit has a number of components for future projects while the CanaKit has the cobbler, a ribbon cable, and a couple of nice reference cards; a resistor color table and a Raspberry Pi GPIO header quick reference. This first project can be completed with either kit but I like having the combined components from the two kits.
+
+### Required Electronic Components
+
+The following electronic components are needed for the First Device project:
+
+* Breadboard
+* Jumper wires
+* LED
+* Tactile Push Switch
+* Resistors:
+   * 1 - 470 ohm
+   * 1 - 10K ohm
+
+Additional recommended parts:
+
+* GPIO Breakout Board
+* Ribbon cable
+
+### Building the Hardware Peripheral
+
+The peripheral hardware for the First Device, as defined in the [Connect the Hardware](https://developer.android.com/things/training/first-device/connect-hardware.html) section of the Android Things documentation, is two distinct ciruits; one circuit for a button switch to provide GPIO input and a second circuit for GPIO output to a LED. This wasn't immediately apparent to me. Once I understood there were two separate ciruits involved the peripheral hardware layout and the app code made sense.
+
+The Android Things documentation shows the layout for a generic Android Things hardware platform connected to a breadboard with both the button and LED circuits. In the following sections I've broken down the two circuits individually as well as the final combined circuit configuration.
+
+#### Button Circuit
+
+The button circuit uses a tactile push switch and a 10K ohm resister. Here is the breadboard layout for the button circuit on a Raspberry Pi 3:
+
+[![First Device Button Circuit](assets/images/FirstDevice_Button_small.png "Click to see larger image")](assets/images/FirstDevice_Button_large.png)
+
+I didn't understand the tactile push switch in the circuit until I found the following diagram from the [Raspberry Pi Cookbook](http://razzpisampler.oreilly.com/ch07.html):
+
+![First Device Button Circuit](assets/images/tactile_push_switch.png)
+
+As you can see from the switch diagram, leads A and B are used in our button circuit while the C and D leads are left unused. Pushing the button closes the switch to complete the circuit between A and B. So, when the switch is open current is being directed to the GPIO input pin and when the switch is close the current finds the path of least resistance through the switch to ground.
+
+You can either try the [Button Circuit App](#button-circuit-app) code with this circuit or add the LED circuit to the breadboard.
+
+#### LED Circuit
+
+The LED circuit uses a LED and a 470 ohm resister. Here is the breadboard layout for the LED circuit on a Raspberry Pi 3:
+
+[![First Device LED Circuit](assets/images/FirstDevice_LED_small.png "Click to see larger image")](assets/images/FirstDevice_LED_large.png)
+
+
+#### Combined Button and LED Circuit
+
+The LED circuit uses a LED and a 470 ohm resister. Here is the breadboard layout for the LED circuit on a Raspberry Pi 3:
+
+[![First Device Combined Circuit](assets/images/FirstDevice_Both_small.png "Click to see larger image")](assets/images/FirstDevice_Both_large.png)
+
+### Android Things First Device App
+
+#### First Device App <a id="first-device-app"></a>
+
+Blah, blah, blah about the first device app....
+
+##### Button Circuit App
+
+##### LED Circuit App
+
+##### Combined Button and LED Circuit App
