@@ -2,6 +2,7 @@ package com.example.androidthings.firstdevice;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 
 import com.google.android.things.pio.Gpio;
@@ -32,6 +33,12 @@ import java.io.IOException;
 public class MainActivity extends Activity {
     private static final String TAG = MainActivity.class.getSimpleName();
     private static final String BUTTON_PIN_NAME = "BCM21";
+    private static final String LED_PIN_NAME = "BCM6";
+    private static final int INTERVAL_BETWEEN_BLINKS_MS = 250;
+
+    private Handler mHandler = new Handler();
+
+    private Gpio mLedGpio;
 
     private Gpio mButtonGpio;
 
@@ -47,26 +54,43 @@ public class MainActivity extends Activity {
         else {
             Log.d(TAG, "Unable to create PeripheralManagerService.");
         }
-		
+
+        // Set-up the button switch GPIO connection.
         try {
-            // Step 1. Create GPIO connection.
+            // Create GPIO connection.
             mButtonGpio = service.openGpio(BUTTON_PIN_NAME);
 
-            // Step 2. Configure as an input.
+            // Configure as an input.
             mButtonGpio.setDirection(Gpio.DIRECTION_IN);
 
-            // Step 3. Enable edge trigger events.
+            // Enable edge trigger events.
             mButtonGpio.setEdgeTriggerType(Gpio.EDGE_FALLING);
 
-            // Step 4. Register an event callback.
+            // Register an event callback.
             mButtonGpio.registerGpioCallback(mCallback);
         } catch (IOException e) {
             Log.e(TAG, "Error on PeripheralIO API", e);
         }
-    }
+
+        // Set-up the LED GPIO connection.
+        try {
+            mLedGpio = service.openGpio(LED_PIN_NAME);
+
+            // Configure as an output.
+            mLedGpio.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
+
+            // Repeat using a handler.
+            mHandler.post(mBlinkRunnable);
+        } catch (IOException e) {
+            Log.e(TAG, "Error on PeriperalIO API", e);
+        }
+	}
 
     private int mClickCounter = 0;
 
+    /**
+     * Button switch event callback.
+     */
     private GpioCallback mCallback = new GpioCallback() {
         @Override
         public boolean onGpioEdge(Gpio gpio) {
@@ -77,7 +101,7 @@ public class MainActivity extends Activity {
                 Thread.sleep(250);
             } catch (InterruptedException e) { /* ignore any interrupted exceptions */ }
 
-            // Step 5. Return true to keep callback active
+            // Return true to keep callback active.
             return true;
         }
     };
@@ -87,14 +111,49 @@ public class MainActivity extends Activity {
         super.onDestroy();
         Log.d(TAG, "onDestroy");
 
-        // Step 6. Close the resource
+        // Remove handler events on close.
+        mHandler.removeCallbacks(mBlinkRunnable);
+
+        // Close the button switch GPIO resource.
         if (mButtonGpio != null) {
             mButtonGpio.unregisterGpioCallback(mCallback);
             try {
                 mButtonGpio.close();
             } catch (IOException e) {
-                Log.e(TAG, "Error on PeripheralIO API", e);
+                Log.e(TAG, "Error on button switch PeripheralIO API", e);
             }
         }
-    }
+ 
+        // Close the LED GPIO resource.
+        if (mLedGpio != null) {
+            try {
+                mLedGpio.close();
+            } catch (IOException e) {
+                Log.e(TAG, "Error on LED PeripheralIO API", e);
+            }
+        }
+   }
+
+    /**
+     * Thread to control blinking the LED.
+     */
+    private Runnable mBlinkRunnable = new Runnable() {
+        @Override
+        public void run() {
+            // Exit if the GPIO is already closed
+            if (mLedGpio == null) {
+                return;
+            }
+
+            try {
+                // Toggle the LED state.
+                mLedGpio.setValue(!mLedGpio.getValue());
+
+                // Schedule another event after delay.
+                mHandler.postDelayed(mBlinkRunnable, INTERVAL_BETWEEN_BLINKS_MS);
+            } catch (IOException e) {
+                Log.e(TAG, "Error on LED PeripheralIO API", e);
+            }
+        }
+    };
 }
