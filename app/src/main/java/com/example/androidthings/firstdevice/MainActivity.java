@@ -55,56 +55,9 @@ public class MainActivity extends Activity {
             Log.d(TAG, "Unable to create PeripheralManagerService.");
         }
 
-        // Set-up the button switch GPIO connection.
-        try {
-            // Create GPIO connection.
-            mButtonGpio = service.openGpio(BUTTON_PIN_NAME);
-
-            // Configure as an input.
-            mButtonGpio.setDirection(Gpio.DIRECTION_IN);
-
-            // Enable edge trigger events.
-            mButtonGpio.setEdgeTriggerType(Gpio.EDGE_FALLING);
-
-            // Register an event callback.
-            mButtonGpio.registerGpioCallback(mCallback);
-        } catch (IOException e) {
-            Log.e(TAG, "Error on PeripheralIO API", e);
-        }
-
-        // Set-up the LED GPIO connection.
-        try {
-            mLedGpio = service.openGpio(LED_PIN_NAME);
-
-            // Configure as an output.
-            mLedGpio.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
-
-            // Repeat using a handler.
-            mHandler.post(mBlinkRunnable);
-        } catch (IOException e) {
-            Log.e(TAG, "Error on PeriperalIO API", e);
-        }
+        setupButtonGpio(service);
+        setupLedGpio(service);
 	}
-
-    private int mClickCounter = 0;
-
-    /**
-     * Button switch event callback.
-     */
-    private GpioCallback mCallback = new GpioCallback() {
-        @Override
-        public boolean onGpioEdge(Gpio gpio) {
-            Log.i(TAG, "GPIO changed, button pressed " + ++mClickCounter + " times.");
-
-            // Give the GPIO signal time to settle.
-            try {
-                Thread.sleep(250);
-            } catch (InterruptedException e) { /* ignore any interrupted exceptions */ }
-
-            // Return true to keep callback active.
-            return true;
-        }
-    };
 
     @Override
     protected void onDestroy() {
@@ -123,7 +76,7 @@ public class MainActivity extends Activity {
                 Log.e(TAG, "Error on button switch PeripheralIO API", e);
             }
         }
- 
+
         // Close the LED GPIO resource.
         if (mLedGpio != null) {
             try {
@@ -132,7 +85,74 @@ public class MainActivity extends Activity {
                 Log.e(TAG, "Error on LED PeripheralIO API", e);
             }
         }
-   }
+    }
+
+    /**
+     * Button switch event callback.
+     */
+    private GpioCallback mCallback = new GpioCallback() {
+        @Override
+        public boolean onGpioEdge(Gpio gpio) {
+            Log.i(TAG, "GPIO changed, button pressed");
+
+            if (running) {
+                try {
+                    mLedGpio.setValue(false);
+                } catch (IOException e) {
+                    Log.e(TAG, "Error on LED blink runnable", e);
+                }
+                mHandler.removeCallbacks(mBlinkRunnable);
+                running = false;
+            }
+            else {
+                mHandler.post(mBlinkRunnable);
+                running = true;
+            }
+
+            // Give the GPIO signal time to settle.
+            try {
+                Thread.sleep(250);
+            } catch (InterruptedException e) { /* ignore any interrupted exceptions */ }
+
+            // Return true to keep callback active.
+            return true;
+        }
+    };
+
+    /**
+     * Initialize the GPIO port to be used for the button switch.
+     *
+     * @param service - Peripheral manager service to communicate with GPIO.
+     */
+    private void setupButtonGpio(PeripheralManagerService service) {
+        try {
+            mButtonGpio = service.openGpio(BUTTON_PIN_NAME);
+            mButtonGpio.setDirection(Gpio.DIRECTION_IN);
+            mButtonGpio.setEdgeTriggerType(Gpio.EDGE_FALLING);
+
+            mButtonGpio.registerGpioCallback(mCallback);
+        } catch (IOException e) {
+            Log.e(TAG, "Error on setting up button", e);
+        }
+    }
+
+    /**
+     * Initialize the GPIO port to be used for the button switch.
+     *
+     * @param service - Peripheral manager service to communicate with GPIO.
+     */
+    private void setupLedGpio(PeripheralManagerService service) {
+        try {
+            mLedGpio = service.openGpio(LED_PIN_NAME);
+
+            // Configure the GPIO port as an output.
+            mLedGpio.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
+        } catch (IOException e) {
+            Log.e(TAG, "Error on setting up LED GPIO port.", e);
+        }
+    }
+
+    boolean running = false;
 
     /**
      * Thread to control blinking the LED.
