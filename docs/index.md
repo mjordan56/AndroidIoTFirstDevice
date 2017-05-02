@@ -75,11 +75,11 @@ The button circuit uses a tactile push switch and a 10K ohm resister. Here is th
 
 [![First Device Button Circuit](assets/images/FirstDevice_Button_small.png "Click to see larger image")](assets/images/FirstDevice_Button_large.png)
 
-I didn't understand the tactile push switch in the circuit until I found the following diagram from the [Raspberry Pi Cookbook](http://razzpisampler.oreilly.com/ch07.html):
+I didn't understand how the tactile push switch was being used in the circuit until I found the following diagram from the [Raspberry Pi Cookbook](http://razzpisampler.oreilly.com/ch07.html):
 
 ![First Device Button Circuit](assets/images/tactile_push_switch.png)
 
-As you can see from the switch diagram, leads A and B are used in our button circuit while the C and D leads are left unused. Pushing the button closes the switch to complete the circuit between A and B. So, when the switch is open current is being directed to the GPIO input pin and when the switch is close the current finds the path of least resistance through the switch to ground.
+I was confused by the four leads on the switch and how they were used in the circuit. As you can see from the switch diagram, leads A and B are used in our button circuit while the C and D leads are left unused. Pushing the button closes the switch to complete the circuit between A and B. So, when the switch is open current is being directed to the GPIO input pin and when the switch is close the current finds the path of least resistance through the switch to ground.
 
 You can either try the [Button Circuit App](#button-circuit-app) code with this circuit or add the LED circuit to the breadboard.
 
@@ -98,12 +98,70 @@ The LED circuit uses a LED and a 470 ohm resister. Here is the breadboard layout
 
 ### Android Things First Device App
 
+The [Interact with Peripherals](https://developer.android.com/things/training/first-device/peripherals.html) section of the Android Things documentation has examples of three activities for demonstrating how to communicate with the GPIO ports in the first device peripheral. You can clone or download the [Simple PIO sample app](https://github.com/androidthings/sample-simplepio) project from GitHub to try out the device but I like to create my own project so I can get a feel for creating a project and playing with some of the parameters. The Simple PIO sample app project has two versions of the simplepio app; a blink activity version and a buttom activity version.
+
+To explore developing my first Android Things app I decided to incrementally build my app to investigate instantiating the PeripheralManagerService, then adding code to handle button events, followed by adding code to blink the LED and finally using the button to control blinking the LED.
+
 #### First Device App <a id="first-device-app"></a>
 
-Blah, blah, blah about the first device app....
+The Android Things team has a GitHub organization for [Android Things](https://github.com/androidthings) repositories. I used the [new-project-template](https://github.com/androidthings/new-project-template) as the starting point for my First Device app.
+
+After creating my new Android Things app by importing the project template I cleaned up the template code and added the code from the [List available peripherals](https://developer.android.com/things/training/first-device/peripherals.html) section to instantiate the PeripheralManagerService to test getting the list of available GPIO ports.
+
+To run the app on the Raspberry Pi 3 synch to the [v0.1](https://github.com/mjordan56/AndroidIoTFirstDevice/tree/v0.1) release of the First Device app and turn on the Raspberry Pi 3. At this point the project can be run with or without the peripheral hardware connected to the GPIO ports.
+
+Once the Android Things OS has fully booted, use [Android Debug Bridge](https://developer.android.com/studio/command-line/adb.html) \(ADB\) connect to the Raspberry Pi 3.
+
+```
+adb connect Android.local
+connected to Android.local:5555
+```
+> Note: an IP address can also be used with the adb connect command
+>
+> ex. adb connect 192.168.1.199
+
+Then run the app from Android Studio. The blank MainActivity will be displayed on the monitor display and the following lines will be output to the "logcat" tab of the Android Monitor window.
+
+```
+05-02 16:53:16.896 5462-5462/com.example.androidthings.firstdevice D/MainActivity: onCreate
+05-02 16:53:16.902 5462-5462/com.example.androidthings.firstdevice D/MainActivity: Available GPIO: [BCM12, BCM13, BCM16, BCM17, BCM18, BCM19, BCM20, BCM21, BCM22, BCM23, BCM24, BCM25, BCM26, BCM27, BCM4, BCM5, BCM6]
+```
 
 ##### Button Circuit App
 
+The first modification I made to the First Device app was to added the code specified in the [Handle button events](https://developer.android.com/things/training/first-device/peripherals.html) section to communicate with the button switch in the peripheral hardware. The output from interaction with the button switch is in the GpioCallback routine; a message is sent to logcat indicating that the GPIO trigger event has occurred.
+
+```
+05-02 18:12:19.441 15020-15020/com.example.androidthings.firstdevice I/MainActivity: GPIO changed, button pressed
+```
+
+When I tested this code I noticed that sometimes multiple log messages were being output. To confirm my suspicion I added a button pressed counter and modified the log message to show the number of times the button had been pressed. Sure enough, a single button press occasionally generated multiple trigger events. My guess is that the state of the GPIO port hasn't fully settled to it's new state. To correct this issue I put the thread to sleep for 250ms to allow the GPIO port to complete the edge state transition before continuing. This seemed to resolve the issue.
+
+The output from the app, after pushing the button switch several times, is:
+
+ ```
+05-02 21:21:55.337 15850-15850/com.example.androidthings.firstdevice D/MainActivity: onCreate
+05-02 21:21:55.342 15850-15850/com.example.androidthings.firstdevice D/MainActivity: Available GPIO: [BCM12, BCM13, BCM16, BCM17, BCM18, BCM19, BCM20, BCM21, BCM22, BCM23, BCM24, BCM25, BCM26, BCM27, BCM4, BCM5, BCM6]
+05-02 21:22:08.224 15850-15850/com.example.androidthings.firstdevice I/MainActivity: GPIO changed, button pressed 1 times.
+05-02 21:22:09.184 15850-15850/com.example.androidthings.firstdevice I/MainActivity: GPIO changed, button pressed 2 times.
+05-02 21:22:09.948 15850-15850/com.example.androidthings.firstdevice I/MainActivity: GPIO changed, button pressed 3 times.
+05-02 21:22:10.978 15850-15850/com.example.androidthings.firstdevice I/MainActivity: GPIO changed, button pressed 4 times.
+ ```
+
+To run the app on the Raspberry Pi 3 synch to the [v0.2](https://github.com/mjordan56/AndroidIoTFirstDevice/tree/v0.2) release of the First Device app and turn on the Raspberry Pi 3. The button circuit peripheral hardware needs to be connected to the GPIO ports.
+
 ##### LED Circuit App
 
+The next modification to the First Device app is to add the code specified in the [Blink an LED](https://developer.android.com/things/training/first-device/peripherals.html) section to control the LED in the peripheral hardware. The output from interaction with the LED is to turn the LED on and off via a GPIO port. This is a really simple block of code that a runnable task that is started when the app is created and starts blinking the LED until the execution of the app is terminated.
+
+To run the app on the Raspberry Pi 3 synch to the [v0.3](https://github.com/mjordan56/AndroidIoTFirstDevice/tree/v0.3) release of the First Device app and turn on the Raspberry Pi 3. The LED circuit peripheral hardware needs to be connected to the GPIO ports.
+
 ##### Combined Button and LED Circuit App
+
+The next logical step for the First Device app is to have the button switch control turning the LED on and off. This version of the app takes the elements learned in this exercise and use them to create an Android Things app that has two integrated peripheral elements to make a single peripheral device.
+
+To run the app on the Raspberry Pi 3 synch to the [v0.4](https://github.com/mjordan56/AndroidIoTFirstDevice/tree/v0.4) release of the First Device app and turn on the Raspberry Pi 3. Use the button to turn on and off the blinking state of the LED.
+
+# Conclusion
+
+This was an interesting first project for learning Android Things. There are a number of cool elements in the Android Things OS and associated API that make developing Internet of Things apps __much__ easier than a number of other alternatives. I look forward to continuing exploring the capabilities of Android Things!
