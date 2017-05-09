@@ -14,9 +14,9 @@ All of the hardware opinions should be relatively equivalent for noobs just gett
 
 One down-side to selecting the Raspberry Pi 3 is the inability of connecting to the Raspberry Pi via a USB connection. This isn't a problem as the Raspberry Pi has an Ethernet port and Wi-Fi but I like the idea of connecting [Android Debug Bridge](https://developer.android.com/studio/command-line/adb.html) directly to an Android device for development. This could be a non-issue and just a limitation of my knowledge about developing on the Raspberry Pi 3.
 
-# Hardware Set-up
+# Hardware Component
 
-## Raspberry Pi 3 Set-up
+## Setting Up The Raspberry Pi 3
 
 Setting up the Raspberry Pi 3 with the Android Things OS was straightforward and easy. Just follow the [step-by-step instructions](https://developer.android.com/things/hardware/raspberrypi.html) in the Android Things documentation for Raspberry Pi 3.
 
@@ -96,7 +96,9 @@ The LED circuit uses a LED and a 470 ohm resister. Here is the breadboard layout
 
 [![First Device Combined Circuit](assets/images/FirstDevice_Both_small.png "Click to see larger image")](assets/images/FirstDevice_Both_large.png)
 
-### Android Things First Device App
+# Software Component
+
+## Android Things First Device App
 
 The [Interact with Peripherals](https://developer.android.com/things/training/first-device/peripherals.html) section of the Android Things documentation has examples of three activities for demonstrating how to communicate with the GPIO ports in the first device peripheral. You can clone or download the [Simple PIO sample app](https://github.com/androidthings/sample-simplepio) project from GitHub to try out the device but I like to create my own project so I can get a feel for creating a project and playing with some of the parameters. The Simple PIO sample app project has two versions of the simplepio app; a blink activity version and a buttom activity version.
 
